@@ -18,11 +18,11 @@ This document is applicable to any platform supporting Kubernetes, with specific
 
 The Solace PubSub+ software message broker meets the needs of big data, cloud migration, and Internet-of-Things initiatives, and enables microservices and event-driven architecture. Capabilities include topic-based publish/subscribe, request/reply, message queues/queueing, and data streaming for IoT devices and mobile/web apps. The message broker supports open APIs and standard protocols including AMQP, JMS, MQTT, REST, and WebSocket. Moreover, it can be deployed in on-premise datacenters, natively within private and public clouds, and across complex hybrid cloud environments.
 
-Solace PubSub+ software message brokers can be deployed in either a 3-node High-Availability (HA) cluster, or as a single node deployment. For simple test environments that need only to validate application functionality, a single instance will suffice. Note that in production, or any environment where message loss cannot be tolerated, an HA cluster is required.
+Solace PubSub+ software message brokers can be deployed in either a 3-node High-Availability (HA), or as a single node deployment. For simple test environments that need only to validate application functionality, a single instance will suffice. Note that in production, or any environment where message loss cannot be tolerated, an HA deployment is required.
 
 ## How to deploy a message broker onto Kubernetes
 
-In this quick start we go through the steps to set up a small-size message broker either as a single stand-alone instance, or in a 3-node HA cluster. If you are interested in other message broker configurations or sizes, refer to the [Deployment Configurations](#other-message-broker-deployment-configurations) section.
+In this quick start we go through the steps to set up a small-size message broker either as a single stand-alone instance, or in a 3-node HA deployment. If you are interested in other message broker configurations or sizes, refer to the [Deployment Configurations](#other-message-broker-deployment-configurations) section.
 
 This is a 4 step process:
 
@@ -86,7 +86,7 @@ cd solace-kubernetes-quickstart/solace    # location of the solace Helm chart
 | `-i`          | OPTIONAL: The Solace image reference in the docker container registry in the form `<DockerRepo>.<ImageName>:<releaseTag>` from [Step 3](#step-3-optional). The default is to use `solace/solace-pubsub-standard:latest`. NOTE: If providing a reference, the `<DockerRepo>.` is not required when using a local repo (e.g. when using MiniKube) |
 | `-c`          | OPTIONAL: The cloud environment you will be running in, current options are [aws\|gcp]. NOTE: if you are not using dynamic provisioned persistent disks, or, if you are running a local MiniKube environment, this option can be left out. |
 | `-v`          | OPTIONAL: The path to a `values.yaml` example/custom file to use. The default file is `values-examples/dev100-direct-noha.yaml` |
-| No parameter | OPTIONAL: Restore Helm tooling, see section [Restoring Helm if not available](#restoring-helm-if-not-available ) |
+| `-r`          | OPTIONAL: Restore Helm tooling only, no change to values. See section [Restoring Helm if not available](#restoring-helm-if-not-available ) |
 
 The location of the `configure.sh` script is in the `../scripts` directory, relative to the `solace` chart. Executing the configuration script will install the required version of the Helm tool if needed, as well as customize the `solace` Helm chart to your desired configuration.
 
@@ -116,13 +116,13 @@ helm install . -f values.yaml
 watch kubectl get pods --show-labels
 ```
 
-The deployment is complete if all Solace pods are running, ready and the active message broker pod's label is "active=true". The exposed `solace` service will now forward traffic to the active message broker node. Refer to section #### for more information about what needs to be in place for the active pod's label to become "active" and possible related issues.
+The deployment is complete if all Solace pods are running, ready and the active message broker pod's label is "active=true". The exposed `solace` service will now forward traffic to the active message broker node. Refer to section [Using pod label "active"](#using-pod-label-active-to-identify-the-active-message-broker-node) for more information about what needs to be in place for the active pod's label to become "active" and possible related issues.
 
-To modify a deployment, refer to the section [Upgrading/modifying the message broker cluster](#upgradingmodifying-the-message-broker-cluster). If you need to start over then refer to the section [Deleting a deployment](#deleting-a-deployment).
+To modify a deployment, refer to the section [Upgrading/modifying the message broker](#upgradingmodifying-the-message-broker). If you need to start over then refer to the section [Deleting a deployment](#deleting-a-deployment).
 
 ### Validate the Deployment
 
-Now you can validate your deployment on the command line. In this example an HA cluster is deployed with po/XXX-XXX-solace-0 being the active message broker/pod. The notation XXX-XXX is used for the unique release name that Helm dynamically generates, e.g: "tinseled-lamb".
+Now you can validate your deployment on the command line. In this example an HA configuration is deployed with po/XXX-XXX-solace-0 being the active message broker/pod. The notation XXX-XXX is used for the unique release name that Helm dynamically generates, e.g: "tinseled-lamb".
 
 ```sh
 prompt:~$ kubectl get statefulsets,services,pods,pvc,pv
@@ -205,7 +205,7 @@ Operating Mode: Message Routing Node
 XXX-XXX-solace-0>
 ```
 
-If you are using an HA cluster, it is better to access the CLI through the Kubernets pod and not directly via SSH.
+If you are using an HA deployment, it is better to access the CLI through the Kubernets pod and not directly via SSH.
 
 Note: SSH access to the pod has been configured at port 2222. For external access SSH has been configured to to be exposed at port 22 by the load balancer.
 
@@ -222,7 +222,7 @@ kubectl port-forward XXX-XXX-solace-0 62222:2222 &
 ssh -p 62222 admin@localhost
 ```
 
-This can also be mapped to individual message brokers in the cluster via port-forward:
+This can also be mapped to individual message brokers in the deployment via port-forward:
 
 ```
 kubectl port-forward XXX-XXX-solace-0 8081:8080 &
@@ -243,7 +243,7 @@ kubectl exec -it XXX-XXX-solace-<pod-ordinal> -- bash
 Logs from the currently running container:
 
 ```sh
-kubectl logs XXX-XXX-solace-0 -c solace
+kubectl logs XXX-XXX-solace-0 -c solace  # use -f to follow live
 ```
 
 Logs from the previously terminated container:
@@ -252,30 +252,42 @@ Logs from the previously terminated container:
 kubectl logs XXX-XXX-solace-0 -c solace -p
 ```
 
+## Viewing events
+
+Kubernetes collects [all events for a cluster in one pool](//kubernetes.io/docs/tasks/debug-application-cluster/events-stackdriver ). This includes events related to the Solace message broker deployment.
+
+It is recommeded to watch events when creating or upgrading a Solace deployment. Events clear after about an hour. You can query all available events:
+
+```sh
+kubectl get events  # use -w to watch live
+```
+
+
+
 ## Testing data access to the message broker
 
 To test data traffic though the newly created message broker instance, visit the Solace Developer Portal and and select your preferred programming language in [send and receive messages](//dev.solace.com/get-started/send-receive-messages/). Under each language there is a Publish/Subscribe tutorial that will help you get started and provide the specific default port to use.
 
-Use the external Public IP to access the cluster. If a port required for a protocol is not opened, refer to the next section on how to open it up by modifying the cluster.
+Use the external Public IP to access the deployment. If a port required for a protocol is not opened, refer to the next section on how to open it up.
 
-## Upgrading/modifying the message broker cluster
+## Upgrading/modifying the message broker deployment
 
-To upgrade/modify the message broker cluster, make the required modifications to the chart in the `solace-kubernetes-quickstart/solace` directory as described next, then run the Helm tool from here. When passing multiple `-f <values-file>` to Helm, the override priority will be given to the last (right-most) file specified.
+To upgrade/modify the message broker deployment, make the required modifications to the chart in the `solace-kubernetes-quickstart/solace` directory as described next, then run the Helm tool from here. When passing multiple `-f <values-file>` to Helm, the override priority will be given to the last (right-most) file specified.
 
 ### Restoring Helm if not available
 
-Before getting into the details of how to make changes to a deployment, it shall be noted that when using a new machine to access the deployment the Helm client may not be available or out of sync with the server. This can be the case when e.g. using cloud shell, which may be terminated any time.
+Before getting into the details of how to make changes to a deployment, it shall be noted that when using a new client to access the deployment, the Helm client may not be available or out of sync with the server. This can be the case when e.g. using cloud shell, which may be terminated any time.
 
-To restore Helm, run the configure command with no parameter provided:
+To restore Helm, run the configure command with `-r` parameter:
 
 ```
 cd ~/workspace/solace-kubernetes-quickstart/solace
-../scripts/configure.sh
+../scripts/configure.sh -r
 ```
 
 Now Helm shall be available on your client, e.g: `helm list` shall no longer return an error message.
 
-### Upgrading the cluster
+### Upgrading the deployment
 
 To **upgrade** the version of the message broker running within a Kubernetes cluster:
 
@@ -302,7 +314,7 @@ kubectl delete po/XXX-XXX-solace-<pod-ordinal>
 ```
 > Important: In an HA deployment, delete the pods in this order: 2,1,0 (i.e. Monitoring Node, Backup Messaging Node, Primary Messaging Node). Confirm that the message broker redundancy is up and reconciled before deleting each pod - this can be verified using the CLI `show redundancy` and `show config-sync` commands on the message broker, or by grepping the message broker container logs for `config-sync-check`.
 
-### Modifying the cluster
+### Modifying the deployment
 
 Similarly, to **modify** other deployment parameters, e.g. to change the ports exposed via the loadbalancer, you need to upgrade the release with a new set of ports. In this example we will add the MQTT 1883 tcp port to the loadbalancer.
 
@@ -404,7 +416,7 @@ Similar value-files can be defined extending above examples:
 ## Kubernetes Volume Types support
 
 This quickstart is expected to work with all [Types of Volumes](//kubernetes.io/docs/concepts/storage/volumes/#types-of-volumes ) your environment supports. It has been specifically tested and has built-in support for:
-* awsElasticBlockStore (when choosing `aws` as cloud provider); and
+* awsElasticBlockStore (when specifying `aws` as cloud provider  in `values.yaml`); and
 * gcePersistentDisk (`aws` cloud provider)
 
 The built-in support creates a StorageClass when specifying `type`. Example:
@@ -416,9 +428,11 @@ storage:
   size: 30Gi
 ```
 
-If using a different provider, create a [StorageClass](//kubernetes.io/docs/concepts/storage/storage-classes/ ) and provide its name in the `values.yaml`. Example:
+If using a different provider, create a [StorageClass](//kubernetes.io/docs/concepts/storage/storage-classes/ ) and provide its name in `values.yaml`. Example:
 
 ```yaml
+# Create your storage class
+#  or query existing ones using "kubectl get storageclasses"
 storage:
   persistent: true
   useStorageClass: <My-Storage-Class>
@@ -429,13 +443,13 @@ storage:
 
 This section provides more information about what is required to achieve the correct label for the pod hosting the active message broker node and provides help for troubleshooting in case of possible issues because of tightened security.
 
-Use `kubectl get pods --show-labels` to check for the status of the "active" label. In a stable deployment, one of the message routing nodes with ordinal 0 or 1 shall have the label `active=true`.
+Use `kubectl get pods --show-labels` to check for the status of the "active" label. In a stable deployment, one of the message routing nodes with ordinal 0 or 1 shall have the label `active=true`. You can find out if there is an issue by checking the events for related ERROR reported.
 
-This label is set by the `readiness_check.sh` script, triggered by the StatefulSet's readiness probe. For this to happen the followings are required:
+This label is set by the `readiness_check.sh` script in `solace/templates/solaceConfigMap.yaml`, triggered by the StatefulSet's readiness probe. For this to happen the followings are required:
 
 - the Solace pods must be able to communicate with each-other at port 8080
-- the Kubernetes service account associated with the Solace pod must have sufficient rights to patch the pod's label
-- the Solace pods must be able to communicate with the Kubernetes API at `kubernetes.default.svc.cluster.local` at port $KUBERNETES_SERVICE_PORT (you can find out the address and port by logging 
+- the Kubernetes service account associated with the Solace pod must have sufficient rights to patch the pod's label when the active message broker is service ready
+- the Solace pods must be able to communicate with the Kubernetes API at `kubernetes.default.svc.cluster.local` at port $KUBERNETES_SERVICE_PORT. You can find out the address and port by [SSH into the pod](#ssh-access-to-individual-message-brokers).
 
 In a controlled environment it may be necessary to add a [NetworkPolicy](//kubernetes.io/docs/concepts/services-networking/network-policies/ ) to enable required communication.
 
