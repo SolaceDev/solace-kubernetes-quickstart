@@ -31,7 +31,7 @@ This is a 4 step process:
 Perform any prerequisites to run Kubernetes in your target environment. These tasks may include creating a GCP project, installing [MiniKube](//github.com/kubernetes/minikube/blob/master/README.md ), etc. You will also need following tools:
 
 * Install [`kubectl`](//kubernetes.io/docs/tasks/tools/install-kubectl/ ).
-* Installation of [`docker`](//docs.docker.com/get-started/ ) may also be required depending on your environment.
+* Installation of [`docker`](//docs.docker.com/get-started/ ) may also be required for [Step 3](#step-3-optional).
 
 ### Step 2: 
 
@@ -230,7 +230,7 @@ kubectl port-forward XXX-XXX-solace-1 8082:8080 &
 kubectl port-forward XXX-XXX-solace-2 8083:8080 &
 ```
 
-# SSH access to individual message brokers
+## SSH access to individual message brokers
 
 For direct access, use:
 
@@ -261,8 +261,6 @@ It is recommeded to watch events when creating or upgrading a Solace deployment.
 ```sh
 kubectl get events  # use -w to watch live
 ```
-
-
 
 ## Testing data access to the message broker
 
@@ -415,7 +413,7 @@ Similar value-files can be defined extending above examples:
 
 ## Kubernetes Volume Types support
 
-This quickstart is expected to work with all [Types of Volumes](//kubernetes.io/docs/concepts/storage/volumes/#types-of-volumes ) your environment supports. It has been specifically tested and has built-in support for:
+This quickstart is expected to work with all [Types of Volumes](//kubernetes.io/docs/concepts/storage/volumes/#types-of-volumes ) your Kubernetes environment supports. It has been specifically tested and has built-in support for:
 * awsElasticBlockStore (when specifying `aws` as cloud provider  in `values.yaml`); and
 * gcePersistentDisk (`aws` cloud provider)
 
@@ -443,7 +441,7 @@ storage:
 
 This section provides more information about what is required to achieve the correct label for the pod hosting the active message broker node and provides help for troubleshooting in case of possible issues because of tightened security.
 
-Use `kubectl get pods --show-labels` to check for the status of the "active" label. In a stable deployment, one of the message routing nodes with ordinal 0 or 1 shall have the label `active=true`. You can find out if there is an issue by checking the events for related ERROR reported.
+Use `kubectl get pods --show-labels` to check for the status of the "active" label. In a stable deployment, one of the message routing nodes with ordinal 0 or 1 shall have the label `active=true`. You can find out if there is an issue by [checking events](#viewing-events) for related ERROR reported.
 
 This label is set by the `readiness_check.sh` script in `solace/templates/solaceConfigMap.yaml`, triggered by the StatefulSet's readiness probe. For this to happen the followings are required:
 
