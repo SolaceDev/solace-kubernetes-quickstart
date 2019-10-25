@@ -25,3 +25,6 @@ script:
 after_script:
   - gcloud container clusters list | grep sol-gke-travistest | awk '{print $1,$2}' | while read -r a b; do gcloud container clusters delete $a --zone $b --quiet; done
   - gcloud compute disks list | grep travis | sed 1d $rpt | while read -r a b c; do gcloud compute disks delete $a --zone $b --quiet; done
+  - gcloud compute http-health-checks list | grep k8s | sed 1d $rpt | while read -r a b c; do gcloud compute http-health-checks delete $a --quiet; done
+  - gcloud compute target-pools list | grep k8s | sed 1d $rpt | while read -r a b c; do gcloud compute target-pools delete $a --region $b --quiet; done
+  - gcloud compute firewall-rules list | grep k8s | sed 1d $rpt | while read -r a b c; do gcloud compute firewall-rules delete $a --quiet; done
