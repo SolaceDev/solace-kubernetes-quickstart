@@ -19,8 +19,6 @@ before_install:
 - gcloud auth activate-service-account -q $(jq -r .client_email keyfile) --key-file=./keyfile
   --project  $(jq -r .project_id keyfile)
 - rm ./keyfile
-- export DESIRED_VERSION=v2.14.3; curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get
-  | bash
 install: true
 script:
 - pwd
@@ -35,74 +33,78 @@ script:
 - gcloud container clusters get-credentials $TESTCLUSTERNAME --zone us-east4-a --project
   capable-stream-180018
 - popd
+- kubectl get nodes -o wide
 - kubectl get statefulset,svc,pods,pvc,pv
+- # Setup test client
+- curl -O https://sftp.solace.com/download/SDKPERF_C_LINUX64
+- tar -xvf SDKPERF_C_LINUX64- travis_wait 30 sleep 1800 &
+- >
+  testServices () {
+    url="$(kubectl get statefulset,svc,pods,pvc,pv --show-labels | grep LoadBalancer | awk '{print $4}')"; echo $url
+    pubSubTools/sdkperf_c -cip=$url -mn=100000 -mr=0 -ptl=t1 -stl=t1 | grep "Total Messages"
+    curl -sS -u admin:admin http://$url:8080/SEMP -d "<rpc><show><redundancy></redundancy></show></rpc>"
+  }
+- >
+  testDeployHelmv2 () {
+    # Params: $1 is the Helm chart name
+    echo
+    helm install --name my-release solacecharts/$1 --set solace.size=dev
+    echo
+    echo "Waiting for chart $1 to deploy..."
+    echo
+    until kubectl get pods --show-labels | grep my-release-$1 | grep -m 1 -E 'active=true'; do sleep 10; done
+    sleep 5
+    echo -e "\nProtocol\tAddress\n"`kubectl get svc --namespace default my-release-$1 -o jsonpath="{range .spec.ports[*]}{.name}\tmy-release-$1.default.svc.cluster.local:{.port}\n"`
+    testServices
+    helm delete my-release --purge
+    kubectl delete pvc --all
+    echo "PASSED: Tested chart $1 using Helm v2"
+  }
+- >
+  testDeployHelmv3 () {
+    # Params: $1 is the Helm chart name
+    echo "============================================================================"
+    helm install my-release solacecharts/$1 --set solace.size=dev
+    echo
+    echo "Waiting for chart $1 to deploy..."
+    echo
+    until kubectl get pods --show-labels | grep my-release-$1 | grep -m 1 -E 'active=true'; do sleep 10; done
+    sleep 5
+    echo -e "\nProtocol\tAddress\n"`kubectl get svc --namespace default my-release-$1 -o jsonpath="{range .spec.ports[*]}{.name}\tmy-release-$1.default.svc.cluster.local:{.port}\n"`
+    testServices
+    helm delete my-release
+    kubectl delete pvc --all
+    echo "PASSED: Tested chart $1 using Helm v3"
+  }
+- # install Helm v2
+- curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get | bash
+- # This enables getting started on most platforms by granting Tiller cluster-admin privileges
 - kubectl -n kube-system create serviceaccount tiller
 - kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
-- helm init --wait --service-account=tiller --upgrade
+- helm init --wait --service-account=tiller --upgrade # this may take some time
 - helm version
-- helm lint pubsubplus
-- helm install --set image.repository=gcr.io/capable-stream-180018/solace-pubsub-standard,image.tag=9.4.0.24,solace.size=dev,solace.redundancy=true,solace.usernameAdminPassword=admin --name my-release pubsubplus
-- kubectl get statefulset,svc,pods,pvc,pv --show-labels
-- echo "Waiting for cluster to become active"
-- travis_wait 30 sleep 1800 &
-- sleep 40; kubectl describe nodes
-- until kubectl get pods --show-labels | grep pubsubplus-0 | grep -m 1 -E '1/1'; do sleep
-  10; done
-- until kubectl get pods --show-labels | grep pubsubplus-1 | grep -m 1 -E '1/1'; do sleep
-  10; done
-- until kubectl get pods --show-labels | grep pubsubplus-2 | grep -m 1 -E '1/1'; do sleep
-  10; done
-- until kubectl get pods --show-labels | grep pubsubplus- | grep -m 1 -E 'active=true';
-  do sleep 10; done
-- kubectl get statefulset,svc,pods,pvc,pv --show-labels
-- bash -c 'if [[ `kubectl get po --show-labels | grep -c "1/1"` -ne 3 ]]; then echo
-  "Some pods are not ready!"; kubectl get po --show-labels; exit 1; fi'
-- export url="$(kubectl get statefulset,svc,pods,pvc,pv --show-labels | grep LoadBalancer
-  | awk '{print $4}')"; echo $url
-- curl -O https://sftp.solace.com/download/SDKPERF_C_LINUX64
-- tar -xvf SDKPERF_C_LINUX64
-- pubSubTools/sdkperf_c -cip=$url -mn=100000 -mr=0 -ptl=t1 -stl=t1 | grep "Total Messages"
-- sleep 30
-- bash -c 'if [[ -z `curl -sS -u admin:admin http://$url:8080/SEMP -d "<rpc><show><config-sync></config-sync></show></rpc>"
-  | grep "<oper-status>Up</oper-status>"` ]] ; then echo "config-sync not up!"; exit
-  1; fi'
-- curl -sS -u admin:admin http://$url:8080/SEMP -d "<rpc><show><redundancy></redundancy></show></rpc>"
-- curl -sS -u admin:admin http://$url:8080/SEMP -d "<rpc><show><config-sync></config-sync></show></rpc>"
-- helm list
-- helm delete $(helm list | grep DEPLOYED | awk '{print $1}') --purge
-- kubectl delete pvc --all
-- bash docs/helm-charts/create-chart-variants.sh; # Create chart variants
-- helm lint pubsubplus
-- helm install pubsubplus --dry-run
-- helm lint pubsubplus-ha
-- helm install pubsubplus-ha --dry-run
-- helm lint pubsubplus-dev
-- helm install pubsubplus-dev --dry-run
-- # Publish to gh-pages and test
-- >
-  if [ "$TRAVIS_PULL_REQUEST" = "false" ] && [ "$TRAVIS_BRANCH" = "master" ]; then
-    git config --global user.email "travis@travis-ci.org";
-    git config --global user.name "travis-ci";
-    mkdir gh-pages; # Now update gh-pages
-    git clone --quiet --branch=gh-pages https://${GH_TOKEN}@github.com/SolaceProducts/pubsubplus-kubernetes-quickstart gh-pages > /dev/null 2>&1;
-    mv pubsubplus-*.tgz gh-pages/helm-charts/;
-    helm repo index gh-pages/helm-charts/ --url https://solaceproducts.github.io/pubsubplus-kubernetes-quickstart/helm-charts;
-    pushd gh-pages;
-    git add -f .;
-    git commit -m "Latest helm chart updates on successful travis build $TRAVIS_BUILD_NUMBER auto-pushed to gh-pages";
-    git remote add origin-pages https://${GH_TOKEN}@github.com/SolaceProducts/pubsubplus-kubernetes-quickstart.git > /dev/null 2>&1;
-    git push --quiet --set-upstream origin-pages gh-pages;
-    echo "Updated and pushed GH pages!";
-    popd;
-    # sleep 60; # Ensure pages updated
-    # bash docs/helm-charts/test-chart-variants-from-gh-pages.sh https://solaceproducts.github.io/pubsubplus-kubernetes-quickstart/helm-charts;
-  fi
+- # test charts
+- helm repo add solacecharts https://solaceproducts.github.io/pubsubplus-kubernetes-quickstart/helm-charts
+- helm repo list
+- testDeployHelmv2 pubsubplus-dev
+- testDeployHelmv2 pubsubplus
+- testDeployHelmv2 pubsubplus-ha
+- # cleanup
+- helm reset --force
+- rm -rf ~/.helm
+- sudo rm /usr/local/bin/helm
+- sleep 5
+- # install Helm v3
+- curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+- helm version
+- # test charts
+- helm repo add solacecharts https://solaceproducts.github.io/pubsubplus-kubernetes-quickstart/helm-charts
+- helm repo list
+- testDeployHelmv3 pubsubplus-dev
+- testDeployHelmv3 pubsubplus
+- testDeployHelmv3 pubsubplus-ha
 
 after_success:
-- echo "Test Success - Branch($TRAVIS_BRANCH) Pull Request($TRAVIS_PULL_REQUEST) Tag($TRAVIS_TAG)"
-- echo "YAML linted"
-- echo "GKE cluster deployment tested"
-- echo "Messaging tested"
 - echo "Chart ha and dev variants created and smoke-tested"
 
 after_script:
