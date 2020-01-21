@@ -41,8 +41,9 @@ script:
 - >
   testServices () {
     while true; do url="$(kubectl get statefulset,svc,pods,pvc,pv --show-labels | grep LoadBalancer | awk '{print $4}')"; echo $url | grep pending || break; sleep 5; done
-    pubSubTools/sdkperf_c -cip=$url -mn=100000 -mr=0 -ptl=t1 -stl=t1 | grep "Total Messages" || exit 1
-    curl -sS -u admin:admin http://$url:8080/SEMP -d "<rpc><show><redundancy></redundancy></show></rpc>" || exit 1
+    echo $url; sleep 5
+    pubSubTools/sdkperf_c -cip=$url -mn=100000 -mr=0 -ptl=t1 -stl=t1 | grep "Total Messages" || return 1
+    curl -sS -u admin:admin http://$url:8080/SEMP -d "<rpc><show><redundancy></redundancy></show></rpc>" || return 1
   }
 - >
   testDeployHelmv2 () {
@@ -55,7 +56,7 @@ script:
     until kubectl get pods --show-labels | grep my-release-$1 | grep -m 1 -E 'active=true'; do sleep 10; done
     sleep 5
     echo -e "\nProtocol\tAddress\n"`kubectl get svc --namespace default my-release-$1 -o jsonpath="{range .spec.ports[*]}{.name}\tmy-release-$1.default.svc.cluster.local:{.port}\n"`
-    testServices || exit 1
+    testServices || return 1
     helm delete my-release --purge
     kubectl delete pvc --all
     echo "PASSED: Tested chart $1 using Helm v2"
