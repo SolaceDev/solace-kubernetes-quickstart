@@ -49,7 +49,7 @@ script:
   testDeployHelmv2 () {
     # Params: $1 is the Helm chart name
     echo
-    helm install --name my-release solacecharts/$1 --set image.repository=gcr.io/capable-stream-180018/solace-pubsub-standard,image.tag=9.4.0.24,solace.size=dev,solace.usernameAdminPassword=admin
+    helm install --name my-release solacecharts/$1 --set solace.size=dev,solace.usernameAdminPassword=admin
     echo
     echo "Waiting for chart $1 to deploy..."
     echo
@@ -65,7 +65,7 @@ script:
   testDeployHelmv3 () {
     # Params: $1 is the Helm chart name
     echo "============================================================================"
-    helm install my-release solacecharts/$1 --set image.repository=gcr.io/capable-stream-180018/solace-pubsub-standard,image.tag=9.4.0.24,solace.size=dev,solace.usernameAdminPassword=admin
+    helm install my-release solacecharts/$1 --set solace.size=dev,solace.usernameAdminPassword=admin
     echo
     echo "Waiting for chart $1 to deploy..."
     echo
