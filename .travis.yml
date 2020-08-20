@@ -59,6 +59,8 @@ script:
     testServices || return 1
     helm delete my-release --purge
     kubectl delete pvc --all
+    # Wait for all pods deleted
+    while kubectl get po | grep my-release-$1 ; do sleep 5; done
     echo "PASSED: Tested chart $1 using Helm v2"
   }
 - >
@@ -75,6 +77,8 @@ script:
     testServices
     helm delete my-release
     kubectl delete pvc --all
+    # Wait for all pods deleted
+    while kubectl get po | grep my-release-$1 ; do sleep 5; done
     echo "PASSED: Tested chart $1 using Helm v3"
   }
 - travis_wait 30 sleep 1800 &
