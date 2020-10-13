@@ -83,7 +83,7 @@ script:
   }
 - travis_wait 30 sleep 1800 &
 - # install Helm v2
-- export DESIRED_VERSION=v2.14.3; curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get | bash
+- export DESIRED_VERSION=v2.16.12; curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get | bash
 - # This enables getting started on most platforms by granting Tiller cluster-admin privileges
 - kubectl -n kube-system create serviceaccount tiller
 - kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
