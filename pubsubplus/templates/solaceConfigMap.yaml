@@ -16,6 +16,7 @@ data:
       export service_webtransport_port='8008'
       export service_webtransport_tlsport='1443'
       export service_semp_tlsport='1943'
+      export service_redundancy_firstlistenport='8300'
       export logging_debug_output=all
 {{- if eq .Values.solace.size "dev" }}
       export system_scaling_maxconnectioncount="100"
@@ -49,11 +50,11 @@ data:
       export configsync_enable=yes
       export redundancy_authentication_presharedkey_key=`cat /mnt/disks/secrets/username_admin_password | awk '{x=$0;for(i=length;i<51;i++)x=x "0";}END{print x}' | base64` # Right-pad with 0s to 50 length
       export redundancy_group_node_${service_name}0_nodetype=message_routing
-      export redundancy_group_node_${service_name}0_connectvia=${service}-0.${service}-discovery.${namespace}.svc
+      export redundancy_group_node_${service_name}0_connectvia=${service}-0.${service}-discovery.${namespace}.svc:8300
       export redundancy_group_node_${service_name}1_nodetype=message_routing
-      export redundancy_group_node_${service_name}1_connectvia=${service}-1.${service}-discovery.${namespace}.svc
+      export redundancy_group_node_${service_name}1_connectvia=${service}-1.${service}-discovery.${namespace}.svc:8300
       export redundancy_group_node_${service_name}2_nodetype=monitoring
-      export redundancy_group_node_${service_name}2_connectvia=${service}-2.${service}-discovery.${namespace}.svc
+      export redundancy_group_node_${service_name}2_connectvia=${service}-2.${service}-discovery.${namespace}.svc:8300
 
       case ${node_ordinal} in
       0)
@@ -76,6 +77,12 @@ data:
       #!/bin/bash
 {{- if .Values.solace.redundancy }}
       APP=`basename "$0"`
+      # Fix consul
+      while [ ! -f /var/lib/solace/config/consul.json ] ; do sleep 1; done;
+      sed -i 's@"bind_addr".*@"bind_addr":    "0.0.0.0",@g'  /var/lib/solace/config/consul.json
+      pkill -9 consul
+      nohup /usr/bin/consul agent -config-file /var/lib/solace/config/consul.json &
+      echo "`date` INFO: ${APP}-Fixed consul"
       # [TODO] KBARR not using correct method of finding ordinal until we bump min Kubernetes release above 1.8.1
       # https://github.com/kubernetes/kubernetes/issues/40651
       # node_ordinal=$(STATEFULSET_ORDINAL)
