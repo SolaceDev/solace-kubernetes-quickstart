@@ -2,9 +2,9 @@ apiVersion: v1
 entries:
   pubsubplus:
   - apiVersion: v1
-    created: "2021-01-20T21:49:29.878501032Z"
+    created: "2021-01-20T22:37:23.084854009Z"
     description: Deploy a single-node non-HA Solace PubSub+ Event Broker Software onto a Kubernetes Cluster
-    digest: c053ced635bb2ce32f4307abc16a7b151c7105cf4b8a8044d6aac8ccf2025094
+    digest: 05e69526cfae9e8ffcebb4ad4bbbb64a7bfd049fb51a9199c6edca52496c0fea
     home: https://dev.solace.com
     icon: https://solaceproducts.github.io/pubsubplus-kubernetes-quickstart/images/PubSubPlus.png
     keywords:
@@ -32,7 +32,7 @@ entries:
     - https://solacedev.github.io/pubsubplus-kubernetes-quickstart/helm-charts/pubsubplus-2.4.0.tgz
     version: 2.4.0
   - apiVersion: v1
-    created: "2021-01-20T21:49:29.877405127Z"
+    created: "2021-01-20T22:37:23.083637207Z"
     description: Deploy a single-node non-HA Solace PubSub+ Event Broker Software onto a Kubernetes Cluster
     digest: cd4a67be1e76500a27223a4e55f1f5fbb9cfbe1310059d6e0aa593832f28d94e
     home: https://dev.solace.com
@@ -62,7 +62,7 @@ entries:
     - https://solacedev.github.io/pubsubplus-kubernetes-quickstart/helm-charts/pubsubplus-2.3.0.tgz
     version: 2.3.0
   - apiVersion: v1
-    created: "2021-01-20T21:49:29.876352722Z"
+    created: "2021-01-20T22:37:23.082311397Z"
     description: Deploy a single-node non-HA Solace PubSub+ Event Broker Software onto a Kubernetes Cluster
     digest: 638eae4087037bc02b7e4761e73be9ac3f5409682a5963c2b9294648fc5000d4
     home: https://dev.solace.com
@@ -97,9 +97,9 @@ entries:
     version: 2.0.0
   pubsubplus-dev:
   - apiVersion: v1
-    created: "2021-01-20T21:49:29.88250445Z"
+    created: "2021-01-20T22:37:23.090267459Z"
     description: Deploy a single-node non-HA Solace PubSub+ Event Broker Software onto a Kubernetes Cluster for development purposes
-    digest: da769563ec8d8fdd8298c01a4b6ea314fe77bc3d6ba2400aa1f015a20d417c39
+    digest: 00ad7a4ad35d575afef70871fd2fc99605e76ff004341865d41e81729a8961ad
     home: https://dev.solace.com
     icon: https://solaceproducts.github.io/pubsubplus-kubernetes-quickstart/images/PubSubPlus.png
     keywords:
@@ -127,7 +127,7 @@ entries:
     - https://solacedev.github.io/pubsubplus-kubernetes-quickstart/helm-charts/pubsubplus-dev-2.4.0.tgz
     version: 2.4.0
   - apiVersion: v1
-    created: "2021-01-20T21:49:29.881079243Z"
+    created: "2021-01-20T22:37:23.08871583Z"
     description: Deploy a single-node non-HA Solace PubSub+ Event Broker Software onto a Kubernetes Cluster for development purposes
     digest: 7f0cc092243059982afbb5619bf0ee5484a949a3364f4076d8c7c8574ae824e3
     home: https://dev.solace.com
@@ -157,7 +157,7 @@ entries:
     - https://solacedev.github.io/pubsubplus-kubernetes-quickstart/helm-charts/pubsubplus-dev-2.3.0.tgz
     version: 2.3.0
   - apiVersion: v1
-    created: "2021-01-20T21:49:29.880024639Z"
+    created: "2021-01-20T22:37:23.087238607Z"
     description: Deploy a minimum footprint single-node non-HA Solace PubSub+ Event Broker Software onto a Kubernetes Cluster for development purposes
     digest: 36b7d9d5be847c0790d4549a673860e679ab283e22e8f9478523bd54329dc1ef
     home: https://dev.solace.com
@@ -192,9 +192,9 @@ entries:
     version: 2.0.0
   pubsubplus-ha:
   - apiVersion: v1
-    created: "2021-01-20T21:49:29.885911765Z"
+    created: "2021-01-20T22:37:23.093940965Z"
     description: Deploy an HA redundancy group of Solace PubSub+ Event Broker Software onto a Kubernetes Cluster
-    digest: e1cab0b3a827e10a39d8905ab14739a39782ae9876f24f19ff5f079251bbe267
+    digest: d339fc84051eaf3806313a9a075d47e792b8a8fb3cbb509865daa0c03c5a3547
     home: https://dev.solace.com
     icon: https://solaceproducts.github.io/pubsubplus-kubernetes-quickstart/images/PubSubPlus.png
     keywords:
@@ -222,7 +222,7 @@ entries:
     - https://solacedev.github.io/pubsubplus-kubernetes-quickstart/helm-charts/pubsubplus-ha-2.4.0.tgz
     version: 2.4.0
   - apiVersion: v1
-    created: "2021-01-20T21:49:29.884956061Z"
+    created: "2021-01-20T22:37:23.092689361Z"
     description: Deploy an HA redundancy group of Solace PubSub+ Event Broker Software onto a Kubernetes Cluster
     digest: 49993ab18cee7e9799085f9a918da541f41e64c3c67e7b30f35703d214a19ab7
     home: https://dev.solace.com
@@ -252,7 +252,7 @@ entries:
     - https://solacedev.github.io/pubsubplus-kubernetes-quickstart/helm-charts/pubsubplus-ha-2.3.0.tgz
     version: 2.3.0
   - apiVersion: v1
-    created: "2021-01-20T21:49:29.883998856Z"
+    created: "2021-01-20T22:37:23.091471559Z"
     description: Deploy an HA redundancy group of Solace PubSub+ Event Broker Software onto a Kubernetes Cluster
     digest: 27b1f1c0b4a404bffbd18e3daab5c0083bcf66202430fd396c6d2b2815ff70ac
     home: https://dev.solace.com
@@ -285,4 +285,4 @@ entries:
     urls:
     - https://solacedev.github.io/pubsubplus-kubernetes-quickstart/helm-charts/pubsubplus-ha-2.0.0.tgz
     version: 2.0.0
-generated: "2021-01-20T21:49:29.875139917Z"
+generated: "2021-01-20T22:37:23.080816673Z"
