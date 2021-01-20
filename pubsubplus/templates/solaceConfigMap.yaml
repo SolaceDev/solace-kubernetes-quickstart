@@ -339,7 +339,7 @@ data:
               -q "<rpc><show><redundancy><group/></redundancy></show></rpc>" \
               -c "/rpc-reply/rpc/show/redundancy/group-node/status[text() = \"Online\"]"`
       if [[ ${role_results} != *"<errorInfo></errorInfo>"* ]]; then
-        errorinfo=`echo ${results} | xmllint -xpath "string(returnInfo/errorInfo)" -` || errorinfo=
+        errorinfo=`echo ${results} | xmllint -xpath "string(returnInfo/errorInfo)" - 2>/dev/null` || errorinfo=
         echo "`date` INFO: ${APP}-Waiting for valid server status response, got ${errorinfo}"
         rm -f ${FINAL_ACTIVITY_LOGGED_TRACKING_FILE}; exit 1
       fi
