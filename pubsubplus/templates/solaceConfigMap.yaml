@@ -87,7 +87,7 @@ data:
     pause=10
     count=0
     while [ ${count} -lt ${loop_guard} ]; do 
-      if /mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP -t ; then
+      if /mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 -t ; then
         break
       fi
       run_time=$((${count} * ${pause}))
@@ -117,7 +117,7 @@ data:
       role=""
       count=0
       while [ ${count} -lt ${loop_guard} ]; do 
-        role_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+        role_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
               -q "<rpc><show><redundancy><detail/></redundancy></show></rpc>" \
               -v "/rpc-reply/rpc/show/redundancy/active-standby-role[text()]"`
         run_time=$((${count} * ${pause}))
@@ -143,7 +143,7 @@ data:
       count=0
       echo "`date` INFO: ${APP}-Management API is up, determined that this node's active-standby role is: ${role}"
       while [ ${count} -lt ${loop_guard} ]; do 
-        online_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+        online_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
             -q "<rpc><show><redundancy><detail/></redundancy></show></rpc>" \
             -v "/rpc-reply/rpc/show/redundancy/virtual-routers/${role}/status/activity[text()]"`
         local_activity=`echo ${online_results} | xmllint -xpath "string(returnInfo/valueSearchResult)" -`
@@ -177,7 +177,7 @@ data:
         count=0
         echo "`date` INFO: ${APP}-Waiting for mate activity state to be 'Standby'"
         while [ ${count} -lt ${loop_guard} ]; do 
-          online_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+          online_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
               -q "<rpc><show><redundancy><detail/></redundancy></show></rpc>" \
               -v "/rpc-reply/rpc/show/redundancy/virtual-routers/${role}/status/detail/priority-reported-by-mate/summary[text()]"`
           mate_activity=`echo ${online_results} | xmllint -xpath "string(returnInfo/valueSearchResult)" -`
@@ -201,7 +201,7 @@ data:
       count=0
       echo "`date` INFO: ${APP}-Waiting for config-sync connected"
       while [ ${count} -lt ${loop_guard} ]; do
-        online_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+        online_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
             -q "<rpc><show><config-sync></config-sync></show></rpc>" \
             -v "/rpc-reply/rpc/show/config-sync/status/client/connection-state"`
         connection_state=`echo ${online_results} | xmllint -xpath "string(returnInfo/valueSearchResult)" -`
@@ -222,15 +222,15 @@ data:
       fi
       # Now can issue {resync_step} command
       echo "`date` INFO: ${APP}-Initiating ${resync_step}"
-      /mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+      /mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
             -q "<rpc><admin><config-sync><${resync_step}><router/></${resync_step}></config-sync></admin></rpc>"
-      /mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+      /mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
             -q "<rpc><admin><config-sync><${resync_step}><vpn-name>default</vpn-name></${resync_step}></config-sync></admin></rpc>"
       # Wait for config-sync results
       count=0
       echo "`date` INFO: ${APP}-Waiting for config-sync connected"
       while [ ${count} -lt ${loop_guard} ]; do
-        online_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+        online_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
                 -q "<rpc><show><config-sync></config-sync></show></rpc>" \
                 -v "/rpc-reply/rpc/show/config-sync/status/oper-status"`
         confsyncstatus_results=`echo ${online_results} | xmllint -xpath "string(returnInfo/valueSearchResult)" -`
@@ -311,7 +311,7 @@ data:
     if [ -f ${lastversion_file} ] && [[ $(cat ${lastversion_file}) != $(readlink /usr/sw/loads/currentload) ]] ; then
       echo "`date` INFO: ${APP}-Upgrade detected, running additional checks..."
       # Check redundancy
-      results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+      results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
               -q "<rpc><show><redundancy/></show></rpc>" \
               -v "/rpc-reply/rpc/show/redundancy/redundancy-status"`
       redundancystatus_results=`echo ${results} | xmllint -xpath "string(returnInfo/valueSearchResult)" -`
@@ -321,7 +321,7 @@ data:
       fi
       # Additionally check config-sync status for non-monitoring nodes
       if [ "${node_ordinal}" != "2" ]; then
-        results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+        results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
                 -q "<rpc><show><config-sync></config-sync></show></rpc>" \
                 -v "/rpc-reply/rpc/show/config-sync/status/oper-status"`
         confsyncstatus_results=`echo ${results} | xmllint -xpath "string(returnInfo/valueSearchResult)" -`
@@ -335,7 +335,7 @@ data:
     readlink /usr/sw/loads/currentload > ${lastversion_file}
     # For monitor node just check for 3 online nodes in group; active label will never be set
     if [ "${node_ordinal}" = "2" ]; then
-      role_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+      role_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
               -q "<rpc><show><redundancy><group/></redundancy></show></rpc>" \
               -c "/rpc-reply/rpc/show/redundancy/group-node/status[text() = \"Online\"]"`
       if [[ ${role_results} != *"<errorInfo></errorInfo>"* ]]; then
@@ -385,7 +385,7 @@ data:
         config_role="backup"
         ;;
     esac
-    online_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080/SEMP \
+    online_results=`/mnt/disks/solace/semp_query.sh -n admin -p ${password} -u http://localhost:8080 \
             -q "<rpc><show><redundancy><detail/></redundancy></show></rpc>" \
             -v "/rpc-reply/rpc/show/redundancy/virtual-routers/${config_role}/status/activity[text()]"`
     local_activity=`echo ${online_results} | xmllint -xpath "string(returnInfo/valueSearchResult)" -`
@@ -470,14 +470,14 @@ data:
         echo  '<returnInfo><errorInfo>missing parameter</errorInfo></returnInfo>'
         exit 1
       fi
-      if [ `curl --write-out '%{http_code}' --silent --output /dev/null -u ${username}:${password} ${url}` != "200" ] ; then
+      if [ "`curl --write-out '%{http_code}' --silent --output /dev/null -u ${username}:${password} ${url}`" != "200" ] ; then
         echo  "<returnInfo><errorInfo>management host is not responding</errorInfo></returnInfo>"
         exit 1
       fi
       if [ "$test_connection_only" = true ] ; then
         exit 0      # done here, connection is up
       fi
-      query_response=`curl -sS -u ${username}:${password} ${url} -d "${query}"`
+      query_response=`curl -sS -u ${username}:${password} ${url}/SEMP -d "${query}"`
       # Validate first char of response is "<", otherwise no hope of being valid xml
       if [[ ${query_response:0:1} != "<" ]] ; then 
         echo  "<returnInfo><errorInfo>no valid xml returned</errorInfo></returnInfo>"
