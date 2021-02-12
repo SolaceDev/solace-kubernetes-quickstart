@@ -45,7 +45,7 @@ jobs:
         tar -xvf SDKPERF_C_LINUX64
         
 
-    - name: Deploy HA broker and test
+    - name: Deploy broker using all Helm chart variants and test
       run: |
         export REPO=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 1)
         export TAG=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 2)
@@ -64,7 +64,7 @@ jobs:
         testDeployHelmv3 () {
           # Params: $1 is the Helm chart name
           echo "============================================================================"
-          helm install my-release solacecharts/$1 --set solace.size=dev,solace.usernameAdminPassword=admin,image.repository=$REPO,image.tag=$TAG
+          helm install my-release solacecharts/$1 --set solace.size=dev,solace.usernameAdminPassword=admin,image.repository=$REPO,image.tag=$TAG,tls.enabled=true,tls.serverCertificatesSecret=test-tls
           echo
           echo "Waiting for chart $1 to deploy..."
           echo
