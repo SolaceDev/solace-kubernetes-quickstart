@@ -1,0 +1,100 @@
+name: daily-sanity-public-helm-chart
+
+on:
+  push:
+
+  schedule:
+  - cron: "0 4 * * *"
+
+jobs:
+  build:
+    name: K8s Published Helm charts CI test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - name: Set env and tools
+      run: |
+        echo "TESTCLUSTERNAME=k8s-gha-test-$(date +%s)" >> $GITHUB_ENV
+        echo "TESTRUNBRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
+        #
+        sudo gem update --system 3.0.6
+        sudo gem install yaml-lint
+        sudo snap install kubectl --classic
+        kubectl version --client
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@master
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+
+    - name: Linting yaml files and chart
+      run: |
+        yaml-lint -n pubsubplus/*.yaml
+        helm lint pubsubplus
+
+    - name: Setup test env
+      run: |
+        # Setup K8s env in GKE
+        wget https://raw.githubusercontent.com/SolaceProducts/solace-gke-quickstart/master/scripts/create_cluster.sh
+        chmod +x create_cluster.sh
+        ./create_cluster.sh -z us-east4-a,us-east4-b,us-east4-c -c $TESTCLUSTERNAME -m e2-standard-2
+        gcloud container clusters get-credentials $TESTCLUSTERNAME --zone us-east4-a --project capable-stream-180018
+        kubectl get statefulset,svc,pods,pvc,pv
+        # setup Helm 3
+        curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash 
+        # Setup test client
+        curl -O https://sftp.solace.com/download/SDKPERF_C_LINUX64
+        tar -xvf SDKPERF_C_LINUX64
+        
+
+    - name: Deploy HA broker and test
+      run: |
+        export REPO=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 1)
+        export TAG=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 2)
+        # Create TLS secret
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=*"
+        kubectl create secret tls test-tls --key="tls.key" --cert="tls.crt"
+        #
+        testServices () {
+          while true; do url="$(kubectl get statefulset,svc,pods,pvc,pv --show-labels | grep LoadBalancer | awk '{print $4}')"; echo $url | grep pending || break; sleep 5; done
+          echo $url; sleep 5
+          curl -sS -u admin:admin http://$url:8080/SEMP -d "<rpc><show><redundancy></redundancy></show></rpc>" || return 1
+          curl -sS -u admin:admin http://$url:8080/SEMP -d "<rpc><show><config-sync></config-sync></show></rpc>" || return 1
+          pubSubTools/sdkperf_c -cip=$url -mn=100000 -mr=0 -ptl=t1 -stl=t1 | grep "Total Messages" || return 1
+        }
+        #
+        testDeployHelmv3 () {
+          # Params: $1 is the Helm chart name
+          echo "============================================================================"
+          helm install my-release solacecharts/$1 --set solace.size=dev,solace.usernameAdminPassword=admin,image.repository=$REPO,image.tag=$TAG
+          echo
+          echo "Waiting for chart $1 to deploy..."
+          echo
+          until kubectl get pods --show-labels | grep my-release-$1 | grep -m 1 -E 'active=true'; do sleep 10; done
+          sleep 5
+          echo -e "\nProtocol\tAddress\n"`kubectl get svc --namespace default my-release-$1 -o jsonpath="{range .spec.ports[*]}{.name}\tmy-release-$1.default.svc.cluster.local:{.port}\n"`
+          testServices
+          helm delete my-release
+          kubectl delete pvc --all
+          # Wait for all pods deleted
+          while kubectl get po | grep my-release-$1 ; do sleep 5; done
+          echo "PASSED: Tested chart $1 using Helm v3"
+        }
+        #
+        # test charts
+        helm repo add solacecharts https://solaceproducts.github.io/pubsubplus-kubernetes-quickstart/helm-charts
+        helm repo list
+        testDeployHelmv3 pubsubplus-dev
+        testDeployHelmv3 pubsubplus
+        testDeployHelmv3 pubsubplus-ha
+        echo "Chart ha and dev variants created and smoke-tested"
+        
+
+    - name: Delete test resources (Cleanup)
+      if: ${{ always() }}
+      run: |
+        gcloud container clusters delete $TESTCLUSTERNAME --quiet --zone us-east4-a
+        sleep 20; gcloud compute disks list | grep gha-test | sed 1d $rpt | while read -r a b c; do gcloud compute disks delete $a --zone $b --quiet || echo "Run into issues with deleting $a, skipping"; done
