@@ -47,8 +47,10 @@ jobs:
 
     - name: Deploy broker using all Helm chart variants and test
       run: |
-        export REPO=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 1)
-        export TAG=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 2)
+        #REPO=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 1)
+        #TAG=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 2)
+        REPO=solace/solace-pubsub-standard
+        TAG=latest
         # Create TLS secret
         openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=*"
         kubectl create secret tls test-tls --key="tls.key" --cert="tls.crt"

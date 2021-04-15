@@ -1,10 +1,10 @@
-name: daily-sanity-master
+name: daily-sanity-master-next
 
 on:
   push:
 
   schedule:
-  - cron: "0 5 * * *"
+  - cron: "0 3 * * *"
 
 jobs:
   build:
@@ -53,10 +53,8 @@ jobs:
 
     - name: Deploy HA broker and test
       run: |
-        #REPO=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 1)
-        #TAG=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 2)
-        REPO=solace/solace-pubsub-standard
-        TAG=latest
+        REPO=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 1)
+        TAG=$(echo ${{ secrets.BROKER_DOCKER_IMAGE_REF }} | cut -d ":" -f 2)
         openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=*"
         kubectl create secret tls test-tls --key="tls.key" --cert="tls.crt"
 
